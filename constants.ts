@@ -3,10 +3,6 @@ import { Supervisor, WipLookupItem } from './types';
 export const SHELF_LIFE_DAYS = 90;
 
 export const SUPERVISORS = [
-  Supervisor.JOHN_DOE,
-  Supervisor.JANE_SMITH,
-  Supervisor.MIKE_JOHNSON,
-  Supervisor.SARAH_CONNOR,
   Supervisor.QUMARS,
   Supervisor.VIMAL,
   Supervisor.RAMZAN,

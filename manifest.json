@@ -1,0 +1,15 @@
+{
+  "short_name": "BatchLabel",
+  "name": "WIP Batch Label Generator",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/icons/printer.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#f1f5f9"
+}

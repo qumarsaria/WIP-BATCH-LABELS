@@ -16,10 +16,6 @@ export interface WipLookupItem {
 }
 
 export enum Supervisor {
-  JOHN_DOE = 'John Doe',
-  JANE_SMITH = 'Jane Smith',
-  MIKE_JOHNSON = 'Mike Johnson',
-  SARAH_CONNOR = 'Sarah Connor',
   QUMARS = 'Qumars',
   VIMAL = 'Vimal',
   RAMZAN = 'Ramzan',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MOCK_WIP_DATABASE, 
   SUPERVISORS, 
@@ -12,8 +12,7 @@ import {
 } from './utils';
 import { 
   BatchRecord, 
-  LabelConfig, 
-  Supervisor 
+  LabelConfig
 } from './types';
 import Label from './components/Label';
 import { identifyMixName } from './services/geminiService';
@@ -27,7 +26,8 @@ import {
   Scale,
   Database,
   Loader2,
-  Edit2
+  Edit2,
+  Download
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [supervisor, setSupervisor] = useState<string>('');
   const [qaQuantity, setQaQuantity] = useState<string>('');
   const [loadingMix, setLoadingMix] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   
   // History
   const [batchHistory, setBatchHistory] = useState<BatchRecord[]>([]);
@@ -45,14 +46,38 @@ const App: React.FC = () => {
   // Print Queue State
   const [printQueue, setPrintQueue] = useState<LabelConfig[]>([]);
 
+  // --- Effects ---
+
+  // 1. Listen for PWA Install Prompt
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // 2. Trigger Print Dialog when Print Queue updates
+  useEffect(() => {
+    if (printQueue.length > 0) {
+      // Use a timeout to ensure the DOM is fully painted with the new labels
+      // before opening the print dialog. 500ms is a safe buffer.
+      const timer = setTimeout(() => {
+        window.print();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [printQueue]);
+
   // --- Derived State ---
   
-  // 1. Check if the current WIP code is in the database
+  // Check if the current WIP code is in the database
   const isKnownCode = useMemo(() => {
     return MOCK_WIP_DATABASE.some(item => item.code === wipCode);
   }, [wipCode]);
 
-  // 2. Calculate Labels to Print based on Business Logic
+  // Calculate Labels to Print based on Business Logic
   const { labelsToPrint, warningMessage } = useMemo(() => {
     const qty = parseFloat(qaQuantity);
     if (isNaN(qty)) {
@@ -74,7 +99,7 @@ const App: React.FC = () => {
     return { labelsToPrint: calculatedLabels, warningMessage: null };
   }, [qaQuantity]);
 
-  // 3. Calculate Use By Date
+  // Calculate Use By Date
   const useByDate = useMemo(() => {
     if (!prepDate) return '';
     const dateObj = new Date(prepDate);
@@ -83,17 +108,25 @@ const App: React.FC = () => {
 
   // --- Handlers ---
 
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+    }
+  };
+
   const handleWipCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const code = e.target.value.toUpperCase();
     setWipCode(code);
 
-    // 1. Try Local Lookup
+    // Try Local Lookup
     const localMatch = MOCK_WIP_DATABASE.find(item => item.code === code);
     if (localMatch) {
       setMixName(localMatch.name);
     } else {
-       // If not found, clear it so user can type manual entry. 
-       // (Or keep it if you want to support correction without re-typing, but clearing ensures data integrity for new codes)
+       // If not found, clear mix name to allow manual entry
        setMixName(''); 
     }
   };
@@ -114,7 +147,7 @@ const App: React.FC = () => {
     if (!wipCode || !mixName || !prepDate || !supervisor || !qaQuantity) return;
     if (labelsToPrint === 0) return;
     
-    // Generate ID safely (supports file:// protocol where crypto.randomUUID might be missing)
+    // Generate ID safely
     const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
       ? crypto.randomUUID() 
       : `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -134,7 +167,7 @@ const App: React.FC = () => {
     // Save to History
     setBatchHistory(prev => [newRecord, ...prev]);
 
-    // Prepare Print Queue
+    // Prepare Print Queue (This will trigger the useEffect to print)
     const labels: LabelConfig[] = [];
     for (let i = 1; i <= labelsToPrint; i++) {
       labels.push({
@@ -147,12 +180,9 @@ const App: React.FC = () => {
         totalCopies: labelsToPrint
       });
     }
-    setPrintQueue(labels);
     
-    // Allow DOM to update then print
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    // Setting state with a new array reference triggers the Effect
+    setPrintQueue(labels);
   };
 
   const canSubmit = wipCode && 
@@ -180,7 +210,18 @@ const App: React.FC = () => {
             <Printer className="w-6 h-6 text-blue-400" />
             <h1 className="text-lg font-bold">Batch Label Gen</h1>
           </div>
-          <div className="text-xs text-slate-400">v1.5.1</div>
+          <div className="flex items-center space-x-3">
+             {installPrompt && (
+              <button 
+                onClick={handleInstall}
+                className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-full transition-colors font-medium"
+              >
+                <Download className="w-3 h-3" />
+                <span>Install App</span>
+              </button>
+             )}
+             <div className="text-xs text-slate-400">v1.5.2</div>
+          </div>
         </div>
       </header>
 
