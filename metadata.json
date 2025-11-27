@@ -1,0 +1,5 @@
+{
+  "name": "WIP Batch Label Generator",
+  "description": "A production utility for manufacturing staff to log batch mixes, calculate expiration dates, and generate physical labels automatically based on QA quantities.",
+  "requestFramePermissions": []
+}
